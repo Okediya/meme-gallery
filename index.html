@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meme Poster</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex flex-col items-center min-h-screen p-4">
+  <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+    <h1 class="text-2xl font-bold text-center mb-4">Post a Meme</h1>
+    
+    <div class="mb-4">
+      <label for="memeImage" class="block text-sm font-medium text-gray-700">Upload Meme Image</label>
+      <input type="file" id="memeImage" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+    </div>
+    
+    <div class="mb-4">
+      <label for="caption" class="block text-sm font-medium text-gray-700">Caption</label>
+      <input type="text" id="caption" placeholder="Enter a funny caption" class="mt-1 block w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    
+    <button onclick="postMeme()" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition">Post Meme</button>
+    
+    <div id="preview" class="mt-4 hidden">
+      <h2 class="text-lg font-semibold">Preview</h2>
+      <img id="previewImage" class="w-full h-auto rounded mt-2" alt="Meme Preview">
+      <p id="previewCaption" class="mt-2 text-center text-gray-700"></p>
+    </div>
+  </div>
+  
+  <div id="memeGallery" class="w-full max-w-4xl mt-8">
+    <h2 class="text-xl font-bold mb-4">Meme Gallery</h2>
+    <div class="mb-4">
+      <input type="text" id="searchInput" placeholder="Search memes by caption" class="w-full p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="filterMemes()">
+    </div>
+    <div id="galleryContent" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+  </div>
+
+  <script>
+    function postMeme() {
+      const imageInput = document.getElementById('memeImage');
+      const captionInput = document.getElementById('caption');
+      const preview = document.getElementById('preview');
+      const previewImage = document.getElementById('previewImage');
+      const previewCaption = document.getElementById('previewCaption');
+      const memeGallery = document.getElementById('galleryContent');
+
+      if (imageInput.files && imageInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const imageData = e.target.result;
+          const caption = captionInput.value || 'No caption';
+
+          // Show preview
+          preview.classList.remove('hidden');
+          previewImage.src = imageData;
+          previewCaption.textContent = caption;
+
+          // Save to local storage
+          const memes = JSON.parse(localStorage.getItem('memes') || '[]');
+          memes.push({ image: imageData, caption });
+          localStorage.setItem('memes', JSON.stringify(memes));
+
+          // Add to gallery
+          addMemeToGallery(imageData, caption);
+
+          // Clear inputs
+          imageInput.value = '';
+          captionInput.value = '';
+        };
+        reader.readAsDataURL(imageInput.files[0]);
+      } else {
+        alert('Please select an image to post.');
+      }
+    }
+
+    function addMemeToGallery(imageData, caption) {
+      const memeGallery = document.getElementById('galleryContent');
+      const memeDiv = document.createElement('div');
+      memeDiv.className = 'bg-white rounded-lg shadow p-4';
+      memeDiv.dataset.caption = caption.toLowerCase(); // Store caption for filtering
+      memeDiv.innerHTML = `
+        <img src="${imageData}" class="w-full h-auto rounded" alt="Meme">
+        <p class="mt-2 text-center text-gray-700">${caption}</p>
+        <button onclick="downloadMeme('${imageData}', '${caption.replace(/'/g, "\\'")}')" class="mt-2 w-full bg-green-500 text-white py-1 rounded hover:bg-green-600 transition">Download</button>
+      `;
+      memeGallery.appendChild(memeDiv);
+    }
+
+    function downloadMeme(imageData, caption) {
+      const link = document.createElement('a');
+      link.href = imageData;
+      const sanitizedCaption = caption.replace(/[^a-zA-Z0-9]/g, '_') || 'meme';
+      link.download = `${sanitizedCaption}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function filterMemes() {
+      const searchInput = document.getElementById('searchInput').value.toLowerCase();
+      const memeGallery = document.getElementById('galleryContent');
+      const memes = memeGallery.getElementsByTagName('div');
+
+      for (let meme of memes) {
+        const caption = meme.dataset.caption;
+        meme.style.display = caption.includes(searchInput) ? '' : 'none';
+      }
+    }
+
+    // Load saved memes from local storage on page load
+    window.onload = function() {
+      const memes = JSON.parse(localStorage.getItem('memes') || '[]');
+      memes.forEach(meme => addMemeToGallery(meme.image, meme.caption));
+    };
+  </script>
+</body>
+</html>
